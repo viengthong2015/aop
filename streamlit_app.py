@@ -347,6 +347,11 @@ def usd(v, full=False):
     return f"${v:,.0f}"
 
 
+def md(s):
+    """Escape '$' so Streamlit markdown does not read amounts as LaTeX maths."""
+    return str(s).replace("$", r"\$")
+
+
 def sev_label(s):
     return f"{SEV_ICON.get(s, '')} {T.sev(s)}" if s else "–"
 
@@ -646,12 +651,12 @@ def line_details(r):
         qty = "–" if pd.isna(r["quantity"]) else f"{r['quantity']:g}"
         movs = " / ".join("–" if pd.isna(r[f"mov_q{i}"]) else f"{r[f'mov_q{i}']:g}" for i in range(1, 5))
         buds = " / ".join(usd(r[f"budget_q{i}"]) for i in range(1, 5))
-        b.markdown(f"**{T('d_uc')}** {usd(r['unit_cost_usd'], True)}  \n**{T('d_qty')}** {qty}  \n"
-                   f"**{T('d_mov')}** {movs}  \n**{T('d_bud')}** {buds}")
-        c.markdown(f"**{T('d_total')} {usd(r['budget_total'], True)}**  \n"
-                   f"**{T('d_formula')}** `{r['total_formula'] or T('d_typed_val')}`  \n"
-                   f"**{T('d_agency')}** {r['ia_raw'] or '–'} → {T.agency(r['implementing_agency']) or '–'}  \n"
-                   f"**{T('d_level')}** {T.level(r['implementation_level']) or '–'}")
+        b.markdown(md(f"**{T('d_uc')}** {usd(r['unit_cost_usd'], True)}  \n**{T('d_qty')}** {qty}  \n"
+                      f"**{T('d_mov')}** {movs}  \n**{T('d_bud')}** {buds}"))
+        c.markdown(md(f"**{T('d_total')} {usd(r['budget_total'], True)}**  \n")
+                   + f"**{T('d_formula')}** `{r['total_formula'] or T('d_typed_val')}`  \n"
+                   + md(f"**{T('d_agency')}** {r['ia_raw'] or '–'} → {T.agency(r['implementing_agency']) or '–'}  \n"
+                        f"**{T('d_level')}** {T.level(r['implementation_level']) or '–'}"))
         iss = ISS_BY_UID.get(r["uid"])
         if iss is not None:
             st.markdown(f"**{T('d_issues')}**")
@@ -664,10 +669,10 @@ def line_details(r):
         o = OUT_BY_UID.get(r["uid"])
         if o is not None:
             for _, x in o.iterrows():
-                st.markdown(f":material/scatter_plot: **{T('d_outlier')} – {METRIC.get(x['metric'], x['metric'])}**: "
-                            f"{x['direction']} · {T('d_value')} {usd(x['value'], True)}"
-                            + (f" · {T('d_peer')} {usd(x['peer_median'], True)} ({T.cat(x['peer_group'])})"
-                               if pd.notna(x['peer_median']) else ""))
+                st.markdown(md(f":material/scatter_plot: **{T('d_outlier')} – {METRIC.get(x['metric'], x['metric'])}**: "
+                               f"{x['direction']} · {T('d_value')} {usd(x['value'], True)}"
+                               + (f" · {T('d_peer')} {usd(x['peer_median'], True)} ({T.cat(x['peer_group'])})"
+                                  if pd.notna(x['peer_median']) else "")))
 
 
 def selectable_lines(df, key, cols, height=480):
@@ -789,9 +794,9 @@ def dlg_duplicates(groups, at_risk):
     for gi, g in enumerate(groups, 1):
         with st.container(key=f"glass-dup-{gi}"):
             label = T("dup_u3") if g["check"] == "U3" else T("dup_u4")
-            st.markdown(f"**{T('group')} {gi}** · <span class='pill'>{g['check']}</span> {label} · "
-                        f"{T.cat(g['category'])} · <b>{usd(g['amount'], True)}</b> × {len(g['lines'])} · "
-                        f"<span style='color:{OUTLIER}'>{T('at_risk')} {usd(g['at_risk'], True)}</span>",
+            st.markdown(md(f"**{T('group')} {gi}** · <span class='pill'>{g['check']}</span> {label} · "
+                           f"{T.cat(g['category'])} · <b>{usd(g['amount'], True)}</b> × {len(g['lines'])} · "
+                           f"<span style='color:{OUTLIER};font-weight:700'>{T('at_risk')} {usd(g['at_risk'], True)}</span>"),
                         unsafe_allow_html=True)
             gl = g["lines"].assign(plan=g["lines"]["sheet"].map(SHORT),
                                    agency=g["lines"]["implementing_agency"].map(T.agency).fillna(g["lines"]["ia_raw"]))
