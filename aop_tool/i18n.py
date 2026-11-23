@@ -446,29 +446,34 @@ class Tr:
         s = UI[key][self.i] if key in UI else key
         return s.format(**kw) if kw else s
 
+    # pandas 3 stores missing text as NaN (a float), pandas 2 as None: only translate real strings
+    @staticmethod
+    def _ok(v):
+        return isinstance(v, str) and v != ""
+
     def sev(self, s):
-        return SEVERITY.get(s, (s, s))[self.i] if s else s
+        return SEVERITY.get(s, (s, s))[self.i] if self._ok(s) else s
 
     def dim(self, d):
-        return DIMENSION.get(d, (d, d))[self.i]
+        return DIMENSION.get(d, (d, d))[self.i] if self._ok(d) else d
 
     def level(self, v):
-        return LEVEL.get(v, v) if self.i and v else v
+        return LEVEL.get(v, v) if self.i and self._ok(v) else v
 
     def comp(self, v):
-        return COMPONENT.get(v, v) if self.i and v else v
+        return COMPONENT.get(v, v) if self.i and self._ok(v) else v
 
     def role(self, v):
-        return ROLE.get(v, v) if self.i and v else v
+        return ROLE.get(v, v) if self.i and self._ok(v) else v
 
     def cat(self, v):
-        return CATEGORY.get(v, v) if self.i and v else v
+        return CATEGORY.get(v, v) if self.i and self._ok(v) else v
 
     def plan(self, sheet, default):
         return PLAN.get(sheet, default) if self.i else default
 
     def agency(self, v):
-        if not self.i or not v:
+        if not self.i or not self._ok(v):
             return v
         if v in AGENCY:
             return AGENCY[v]

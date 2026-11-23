@@ -1,0 +1,35 @@
+# ---------------------------------------------------------------------------
+# AOP 2027 analysis tool
+# ---------------------------------------------------------------------------
+
+# Generated results: rebuild any time with `python run_aop_analysis.py`
+output/
+
+# Source workbook.
+# It stays in the repo because the Streamlit Cloud app reads it from data/.
+# To keep budget data out of GitHub, uncomment the next line and use the
+# app's "Upload a file" option instead.
+# data/
+
+# Excel / Office lock and temp files (created while a workbook is open)
+~$*
+*.tmp
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Streamlit secrets (never commit credentials)
+.streamlit/secrets.toml
+
+# Editors and OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini

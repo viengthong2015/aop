@@ -352,8 +352,13 @@ def md(s):
     return str(s).replace("$", r"\$")
 
 
+def na_none(v):
+    """None for missing values (pandas 3 gives NaN for missing text, pandas 2 gives None)."""
+    return None if v is None or (isinstance(v, float) and math.isnan(v)) or v is pd.NA else v
+
+
 def sev_label(s):
-    return f"{SEV_ICON.get(s, '')} {T.sev(s)}" if s else "–"
+    return f"{SEV_ICON.get(s, '')} {T.sev(s)}" if isinstance(s, str) and s else "–"
 
 
 def sec(n, title, desc=""):
@@ -528,8 +533,12 @@ for _c in ["unit_cost_usd", "unit_cost_lak", "quantity", "mov_q1", "mov_q2", "mo
            "level", "depth", "issue_count"]:
     DF[_c] = pd.to_numeric(DF[_c], errors="coerce")
 DF["material"] = DF["max_severity"].isin(MATERIAL)
-DF["_search"] = (DF[["code", "name", "name_alt", "ia_raw", "implementing_agency", "activity_type_raw", "sheet",
-                     "sheet_label"]].astype(str).agg(" ".join, axis=1).str.lower())
+# search index: fill gaps first – pandas 3 keeps missing values as NaN even after astype(str)
+_SEARCH_COLS = ["code", "name", "name_alt", "ia_raw", "implementing_agency", "activity_type_raw", "sheet", "sheet_label"]
+DF["_search"] = DF[_SEARCH_COLS[0]].fillna("").astype(str)
+for _c in _SEARCH_COLS[1:]:
+    DF["_search"] = DF["_search"] + " " + DF[_c].fillna("").astype(str)
+DF["_search"] = DF["_search"].str.lower()
 ISS = pd.DataFrame(A["issues"])
 OUT = pd.DataFrame(A["outliers"])
 SHEETS = pd.DataFrame(A["sheets"])
@@ -543,7 +552,7 @@ METRIC = {"Unit cost (USD)": T("m_uc"), "Line total (USD)": T("m_tot"), "Quarter
 
 
 def excl_label(x):
-    if not x or T.lang == "en":
+    if not isinstance(x, str) or not x or T.lang == "en":
         return x
     if x == "alternate-language copy":
         return "ສະບັບແປພາສາ"
@@ -636,6 +645,7 @@ def to_csv(df, cols=None):
 
 def line_details(r):
     """Detail card for one budget line: all fields + issues + outlier flags."""
+    r = {k: na_none(v) for k, v in dict(r).items()}   # NaN -> None so `or '–'` works on pandas 2 and 3
     with st.container(key=f"glass-detail-{r['uid']}"):
         st.markdown(f"<div class='ct'>{r['code'] or ''} {r['name'] or ''}</div>"
                     f"<div class='cd'>{r['sheet']} · {T('d_row')} {r['excel_row']} · "
@@ -691,7 +701,7 @@ def selectable_lines(df, key, cols, height=480):
     if "exclusion_reason" in show:
         show["exclusion_reason"] = show["exclusion_reason"].map(excl_label)
     for c in show.columns:
-        if show[c].dtype == object:
+        if pd.api.types.is_object_dtype(show[c]) or pd.api.types.is_string_dtype(show[c]):  # pandas 2 & 3
             show[c] = show[c].fillna("–")
     ev = st.dataframe(show, hide_index=True, width="stretch", height=height, on_select="rerun",
                       selection_mode="single-row", key=key, column_config=LINE_CFG)
@@ -809,7 +819,7 @@ def dlg_duplicates(groups, at_risk):
             for _, r in gl.iterrows():
                 rows.append(dict(group=gi, check=g["check"], amount_at_risk=g["at_risk"], sheet=r["sheet"],
                                  excel_row=r["excel_row"], code=r["code"], name=r["name"], budget_total=r["budget_total"],
-                                 implementing_agency=r["implementing_agency"] or r["ia_raw"]))
+                                 implementing_agency=na_none(r["implementing_agency"]) or na_none(r["ia_raw"])))
     st.download_button(T("dl_csv"), to_csv(pd.DataFrame(rows)), "AOP2027_possible_double_budgeting.csv", "text/csv",
                        icon=":material/download:", type="primary")
 
