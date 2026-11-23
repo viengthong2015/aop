@@ -1,0 +1,17 @@
+[theme]
+base = "light"
+primaryColor = "#1E7B4F"
+backgroundColor = "#F6F7F3"
+secondaryBackgroundColor = "#E6EFE8"
+textColor = "#14302A"
+borderColor = "#D3DED5"
+baseRadius = "0.6rem"
+font = "Noto Sans Lao:https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@100..900&display=swap"
+headingFont = "Noto Sans Lao:https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@100..900&display=swap"
+
+[server]
+headless = true
+maxUploadSize = 50
+
+[browser]
+gatherUsageStats = false
